@@ -26,6 +26,11 @@ p{
     font-size: 2.75rem;
     font-weight: 400;
     text-align: center;
+    & svg{
+        width: 36px;
+        height: 36px;
+        fill: yellow !important;
+    }
 }
 
 
@@ -83,10 +88,32 @@ p{
     /* text-decoration-style: wavy;  */
 }
 
-#play-again{
+#won-play-again{
     padding: 1rem 2rem;
     background-color: transparent;
     font-size: 1rem;
     border-radius: 10px;
 
+}
+
+.opp{
+    background-position:  center;
+    background-repeat: no-repeat;
+}
+#albi{
+    background-image:  url('./assets/opp1.svg');
+}
+#marvin{
+    background-image:  url('./assets/opp2.svg');
+}
+#daisy{
+    background-image:  url('./assets/opp3.svg');
+}
+#georgia{
+    background-image:  url('./assets/opp4.svg');
+}
+
+
+.loser-text{
+    
 }

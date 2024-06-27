@@ -82,9 +82,11 @@ const areasWhereNotToPutPoints = {
   66: [7, 8, 9, 10],
 }
 
+let pacmanInterval
 let points = 0
 let pointsTotal
 const pointsEl = document.getElementById('points')
+const livesEl = document.getElementById('lives')
 pointsEl.textContent = 0
 
 class Pacman {
@@ -94,11 +96,28 @@ class Pacman {
     this.x = 37
     this.y = 12
     this.canMove = false
+    this.lives = 3
   }
 }
 
+class Ghost {
+  constructor(name, direction, color, x, y) {
+    this.name = name
+    this.direction = direction
+    this.x = x
+    this.y = y
+    this.isEatable = false
+    this.color = color
+  }
+}
 
 const pacmanObj = new Pacman()
+const opp1 = new Ghost('Marvin', 'left', 'red', 36, 22)
+const opp2 = new Ghost('Albi', 'up', 'purple', 37, 22)
+const opp3 = new Ghost('Daisy', 'up', 'green', 38, 22)
+const opp4 = new Ghost('Georgia', 'right', 'cyan', 39, 22)
+
+const oppsArray = [opp1, opp2, opp3, opp4]
 
 const mainGrid = document.querySelector('.main-grid')
 
@@ -114,6 +133,35 @@ const gridCreator = () => {
       if (i == pacmanObj.y && j == pacmanObj.x) {
         child.classList.add('square', 'pacman')
         child.style.transform = 'rotate("0deg")'
+        livesEl.textContent = pacmanObj.lives
+      }
+      if (i == 22 && j > 35 && j < 40) {
+        child.classList.add('opp')
+        if (i === 22 && j >= 36 && j <= 39) {
+          child.classList.add('opp')
+          switch (j) {
+            case 36:
+              child.setAttribute('id', 'marvin')
+              opp1.x = j
+              opp1.y = i
+              break
+            case 37:
+              child.setAttribute('id', 'albi')
+              opp2.x = j
+              opp2.y = i
+              break
+            case 38:
+              child.setAttribute('id', 'daisy')
+              opp3.x = j
+              opp3.y = i
+              break
+            case 39:
+              child.setAttribute('id', 'georgia')
+              opp4.x = j
+              opp4.y = i
+              break
+          }
+        }
       }
 
       if (i < 2 || i > 22 || j < 3 || j > 71) {
@@ -168,6 +216,9 @@ document.addEventListener('keydown', (e) => {
       }
       pacmanObj.direction = 'down'
       pm.style.transform = 'rotate(90deg)'
+      nextBlock = document.querySelector(
+        `.block[data-x="${pacmanObj.x}"][data-y="${pacmanObj.y + 1}"]`
+      )
       break
     case 'ArrowLeft':
       if (pacmanObj.direction === 'left') {
@@ -175,6 +226,9 @@ document.addEventListener('keydown', (e) => {
       }
       pacmanObj.direction = 'left'
       pm.style.transform = 'rotate(180deg)'
+      nextBlock = document.querySelector(
+        `.block[data-x="${pacmanObj.x - 1}"][data-y="${pacmanObj.y}"]`
+      )
 
       break
     case 'ArrowUp':
@@ -183,97 +237,233 @@ document.addEventListener('keydown', (e) => {
       }
       pacmanObj.direction = 'up'
       pm.style.transform = 'rotate(-90deg)'
-
+      nextBlock = document.querySelector(
+        `.block[data-x="${pacmanObj.x}"][data-y="${pacmanObj.y + 1}"]`
+      )
       break
     case 'ArrowRight':
       if (pacmanObj.direction === 'right') {
         break
       }
       pacmanObj.direction = 'right'
-
       pm.style.transform = 'rotate(0deg)'
-      break
-  }
-
-})
-
-// pacman mover interval
-pacmanMover = setInterval(() => {
-  let nextBlock
-  if (!pacmanObj.hasMoved) return
-
-  const pm = document.querySelector('.pacman')
-
-  switch (pacmanObj.direction) {
-    case 'up':
-      nextBlock = document.querySelector(
-        `.block[data-x="${pacmanObj.x}"][data-y="${pacmanObj.y - 1}"]`
-      )
-      nextBlock.style.transform = 'rotate(-90deg)'
-      break
-    case 'down':
-      nextBlock = document.querySelector(
-        `.block[data-x="${pacmanObj.x}"][data-y="${pacmanObj.y + 1}"]`
-      )
-      nextBlock.style.transform = 'rotate(90deg)'
-      break
-    case 'left':
-      nextBlock = document.querySelector(
-        `.block[data-x="${pacmanObj.x - 1}"][data-y="${pacmanObj.y}"]`
-      )
-      nextBlock.style.transform = 'rotate(180deg)'
-      break
-    case 'right':
       nextBlock = document.querySelector(
         `.block[data-x="${pacmanObj.x + 1}"][data-y="${pacmanObj.y}"]`
       )
-      nextBlock.style.transform = 'rotate(0deg)'
-
       break
   }
-  console.log(nextBlock)
+  if (nextBlock && !nextBlock.classList.contains('border') && !pacmanInterval) {
+    startInterval()
+  }
+})
 
-  if (nextBlock && !nextBlock.classList.contains('border')) {
-    nextBlock.classList.add('pacman')
-    pm.classList.remove('pacman')
-    if (nextBlock.classList.contains('point')) {
-      nextBlock.classList.remove('point')
-      pacmanObj.x = Number(nextBlock.dataset.x)
-      pacmanObj.y = Number(nextBlock.dataset.y)
-      points++
-      pointsEl.textContent = points
+// pacman mover interval
+function startInterval() {
+  pacmanInterval = setInterval(() => {
+    let nextBlock
+    if (!pacmanObj.hasMoved) return
+
+    const pm = document.querySelector('.pacman')
+
+    switch (pacmanObj.direction) {
+      case 'up':
+        nextBlock = document.querySelector(
+          `.block[data-x="${pacmanObj.x}"][data-y="${pacmanObj.y - 1}"]`
+        )
+        nextBlock.style.transform = 'rotate(-90deg)'
+        break
+      case 'down':
+        nextBlock = document.querySelector(
+          `.block[data-x="${pacmanObj.x}"][data-y="${pacmanObj.y + 1}"]`
+        )
+        nextBlock.style.transform = 'rotate(90deg)'
+        break
+      case 'left':
+        nextBlock = document.querySelector(
+          `.block[data-x="${pacmanObj.x - 1}"][data-y="${pacmanObj.y}"]`
+        )
+        nextBlock.style.transform = 'rotate(180deg)'
+        break
+      case 'right':
+        nextBlock = document.querySelector(
+          `.block[data-x="${pacmanObj.x + 1}"][data-y="${pacmanObj.y}"]`
+        )
+        nextBlock.style.transform = 'rotate(0deg)'
+
+        break
+    }
+
+    if (nextBlock.classList.contains('opp')) {
+      pacmanObj.lives--
+      livesEl.textContent = pacmanObj.lives
+
+      if (pacmanObj.lives <= 0) {
+        gameOver()
+      } else {
+        points = Math.max(0, points - 1)
+        pointsEl.textContent = points
+        resetPacmanPosition()
+      }
+      return
+    }
+    if (nextBlock && !nextBlock.classList.contains('border')) {
+      nextBlock.classList.add('pacman')
+      pm.classList.remove('pacman')
+      if (nextBlock.classList.contains('point')) {
+        nextBlock.classList.remove('point')
+        pacmanObj.x = Number(nextBlock.dataset.x)
+        pacmanObj.y = Number(nextBlock.dataset.y)
+        points++
+        pointsEl.textContent = points
+      } else {
+        pacmanObj.x = Number(nextBlock.dataset.x)
+        pacmanObj.y = Number(nextBlock.dataset.y)
+      }
+    }
+
+    if (nextBlock.classList.contains('border')) {
+      stopInterval()
+    }
+
+    if (points === pointsTotal) {
+      mainGrid.innerHTML = ''
+      mainGrid.classList.remove('main-grid')
+      mainGrid.classList.add('won-play-again')
+      const youWonText = document.createElement('h3')
+      youWonText.classList.add('winner-text')
+      const playAgainButton = document.createElement('button')
+      playAgainButton.textContent = 'Play Again'
+      playAgainButton.addEventListener('click', () => {
+        points = 0
+        pointsEl.textContent = 0
+
+        pacmanObj.hasMoved = false
+        pacmanObj.direction = 'left'
+        pacmanObj.x = 37
+        pacmanObj.y = 12
+        pacmanObj.canMove = false
+        pacmanObj.lives = 3
+        mainGrid.innerHTML = ''
+        gridCreator()
+        mainGrid.classList.remove('won-play-again')
+        mainGrid.classList.add('main-grid')
+      })
+      mainGrid.appendChild(youWonText)
+      mainGrid.appendChild(playAgainButton)
+    }
+  }, 250)
+}
+
+function stopInterval() {
+  if (pacmanInterval) {
+    clearInterval(pacmanInterval)
+    pacmanInterval = null
+  }
+}
+
+function moveOpp(opp) {
+  const possibleMoves = ['up', 'down', 'left', 'right']
+  let nextBlock
+
+  do {
+    opp.direction =
+      possibleMoves[Math.floor(Math.random() * possibleMoves.length)]
+
+    switch (opp.direction) {
+      case 'up':
+        nextBlock = document.querySelector(
+          `.block[data-x="${opp.x}"][data-y="${opp.y - 1}"]`
+        )
+        break
+      case 'down':
+        nextBlock = document.querySelector(
+          `.block[data-x="${opp.x}"][data-y="${opp.y + 1}"]`
+        )
+        break
+      case 'left':
+        nextBlock = document.querySelector(
+          `.block[data-x="${opp.x - 1}"][data-y="${opp.y}"]`
+        )
+        break
+      case 'right':
+        nextBlock = document.querySelector(
+          `.block[data-x="${opp.x + 1}"][data-y="${opp.y}"]`
+        )
+        break
+    }
+  } while (nextBlock && nextBlock.classList.contains('border'))
+  if (nextBlock.classList.contains('pacman')) {
+    pacmanObj.lives--
+    if (pacmanObj.lives <= 0) {
+      gameOver()
     } else {
-      pacmanObj.x = Number(nextBlock.dataset.x)
-      pacmanObj.y = Number(nextBlock.dataset.y)
+      livesEl.textContent = pacmanObj.lives
+      resetPacmanPosition()
     }
   }
 
-  // check if you win
-  if (points === pointsTotal) {
-    mainGrid.innerHTML = ''
-    mainGrid.classList.remove('main-grid')
-    mainGrid.classList.add('play-again-grid')
-    const youWonText = document.createElement('h3')
-    youWonText.classList.add('winner-text')
-    const playAgainButton = document.createElement('button')
-    playAgainButton.textContent = 'Play Again'
-    playAgainButton.addEventListener('click', () => {
-      points = 0
-      pointsEl.textContent = 0
+  if (nextBlock) {
+    const currentBlock = document.querySelector(
+      `.block[data-x="${opp.x}"][data-y="${opp.y}"]`
+    )
+    currentBlock.classList.remove('opp')
+    currentBlock.removeAttribute('id')
 
-      pacmanObj.hasMoved = false
-      pacmanObj.direction = 'left'
-      pacmanObj.x = 37
-      pacmanObj.y = 12
-      pacmanObj.canMove = false
-      mainGrid.innerHTML = ""
-      gridCreator()
-      mainGrid.classList.remove('play-again-grid')
-      mainGrid.classList.add('main-grid')
-    })
-    mainGrid.appendChild(youWonText)
-    mainGrid.appendChild(playAgainButton)
+    nextBlock.classList.add('opp')
+    nextBlock.setAttribute('id', opp.name.toLowerCase())
+
+    opp.x = Number(nextBlock.dataset.x)
+    opp.y = Number(nextBlock.dataset.y)
   }
+}
+
+setInterval(() => {
+  moveOpp(opp1)
+  moveOpp(opp2)
+  moveOpp(opp3)
+  moveOpp(opp4)
 }, 250)
 
+function gameOver() {
+  mainGrid.innerHTML = ''
+  mainGrid.classList.remove('main-grid')
+  mainGrid.classList.add('lost-play-again')
+  const youWonText = document.createElement('h3')
+  youWonText.classList.add('loser-text')
+  const playAgainButton = document.createElement('button')
+  playAgainButton.textContent = 'Play Again'
+  playAgainButton.addEventListener('click', () => {
+    points = 0
+    pointsEl.textContent = 0
 
+    pacmanObj.hasMoved = false
+    pacmanObj.direction = 'left'
+    pacmanObj.x = 37
+    pacmanObj.y = 12
+    pacmanObj.canMove = false
+    pacmanObj.lives = 3
+    mainGrid.innerHTML = ''
+    gridCreator()
+    mainGrid.classList.remove('lost-play-again')
+    mainGrid.classList.add('main-grid')
+  })
+  mainGrid.appendChild(youWonText)
+  mainGrid.appendChild(playAgainButton)
+}
+
+function resetPacmanPosition() {
+  const currentPacmanPlacement = document.querySelector('.pacman')
+  currentPacmanPlacement.classList.remove('pacman')
+
+  pacmanObj.x = 37
+  pacmanObj.y = 12
+  pacmanObj.direction = 'left'
+
+  const newPacmanPlacement = document.querySelector(
+    `.block[data-x="${pacmanObj.x}"][data-y="${pacmanObj.y}"]`
+  )
+  newPacmanPlacement.classList.add('pacman')
+  newPacmanPlacement.style.transform = 'rotate(180deg)'
+
+  stopInterval()
+}

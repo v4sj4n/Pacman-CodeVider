@@ -1,18 +1,3 @@
-let points = 0
-let pointsTotal = 0
-const pointsEl = document.getElementById('points')
-points.textContent = 0
-
-class Pacman {
-  constructor() {
-    this.hasMoved = false
-    this.direction = 'left'
-    this.x = 37
-    this.y = 12
-  }
-}
-const pacmanObj = new Pacman()
-
 const bordersObj = {
   // C
   6: [5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19],
@@ -86,7 +71,6 @@ const bordersObj = {
   67: [5, 6, 7, 8, 9, 10, 11, 12, 13, 16, 17, 18],
   68: [5, 6, 7, 8, 9, 10, 11, 12, 13, 17, 18, 19],
 }
-
 const areasWhereNotToPutPoints = {
   15: [7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17],
   16: [7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17],
@@ -97,51 +81,74 @@ const areasWhereNotToPutPoints = {
   65: [7, 8, 9, 10],
   66: [7, 8, 9, 10],
 }
+
+let points = 0
+let pointsTotal
+const pointsEl = document.getElementById('points')
+pointsEl.textContent = 0
+
+class Pacman {
+  constructor() {
+    this.hasMoved = false
+    this.direction = 'left'
+    this.x = 37
+    this.y = 12
+    this.canMove = false
+  }
+}
+
+
+const pacmanObj = new Pacman()
+
 const mainGrid = document.querySelector('.main-grid')
 
-for (let i = 0; i < 25; i++) {
-  for (let j = 0; j < 75; j++) {
-    const child = document.createElement('div')
-    child.classList.add('block')
-    child.dataset.x = j
-    child.dataset.y = i
+// Grid creator
+const gridCreator = () => {
+  for (let i = 0; i < 25; i++) {
+    for (let j = 0; j < 75; j++) {
+      const child = document.createElement('div')
+      child.classList.add('block')
+      child.dataset.x = j
+      child.dataset.y = i
 
-    if (i == pacmanObj.y && j == pacmanObj.x) {
-      child.classList.add('square', 'pacman')
-      child.style.transform = 'rotate("0deg")'
-    }
+      if (i == pacmanObj.y && j == pacmanObj.x) {
+        child.classList.add('square', 'pacman')
+        child.style.transform = 'rotate("0deg")'
+      }
 
-    if (i < 2 || i > 22 || j < 3 || j > 71) {
-      child.classList.add('square', 'border')
-    }
-
-    if (Object.keys(bordersObj).includes(j.toString())) {
-      if (bordersObj[j].includes(i)) {
+      if (i < 2 || i > 22 || j < 3 || j > 71) {
         child.classList.add('square', 'border')
       }
-    }
 
-    if (
-      !child.classList.contains('border') &&
-      !child.classList.contains('pacman')
-    ) {
       if (Object.keys(bordersObj).includes(j.toString())) {
-        if (
-          !(j in areasWhereNotToPutPoints) ||
-          !areasWhereNotToPutPoints[j].includes(i)
-        ) {
+        if (bordersObj[j].includes(i)) {
+          child.classList.add('square', 'border')
+        }
+      }
+
+      if (
+        !child.classList.contains('border') &&
+        !child.classList.contains('pacman')
+      ) {
+        if (Object.keys(bordersObj).includes(j.toString())) {
+          if (
+            !(j in areasWhereNotToPutPoints) ||
+            !areasWhereNotToPutPoints[j].includes(i)
+          ) {
+            child.classList.add('square', 'point')
+            pointsTotal++
+          }
+        } else {
           child.classList.add('square', 'point')
           pointsTotal++
         }
-      } else {
-        child.classList.add('square', 'point')
-        pointsTotal++
       }
-    }
 
-    mainGrid.appendChild(child)
+      mainGrid.appendChild(child)
+    }
   }
 }
+gridCreator()
 
 pointsEl.textContent = points
 
@@ -161,9 +168,6 @@ document.addEventListener('keydown', (e) => {
       }
       pacmanObj.direction = 'down'
       pm.style.transform = 'rotate(90deg)'
-      nextBlock = document.querySelector(
-        `.block[data-x="${pm.dataset.x}"][data-y="${Number(pm.dataset.y) + 1}"]`
-      )
       break
     case 'ArrowLeft':
       if (pacmanObj.direction === 'left') {
@@ -171,9 +175,7 @@ document.addEventListener('keydown', (e) => {
       }
       pacmanObj.direction = 'left'
       pm.style.transform = 'rotate(180deg)'
-      nextBlock = document.querySelector(
-        `.block[data-x="${Number(pm.dataset.x) - 1}"][data-y="${pm.dataset.y}"]`
-      )
+
       break
     case 'ArrowUp':
       if (pacmanObj.direction === 'up') {
@@ -181,9 +183,7 @@ document.addEventListener('keydown', (e) => {
       }
       pacmanObj.direction = 'up'
       pm.style.transform = 'rotate(-90deg)'
-      nextBlock = document.querySelector(
-        `.block[data-x="${pm.dataset.x}"][data-y="${Number(pm.dataset.y) - 1}"]`
-      )
+
       break
     case 'ArrowRight':
       if (pacmanObj.direction === 'right') {
@@ -192,31 +192,13 @@ document.addEventListener('keydown', (e) => {
       pacmanObj.direction = 'right'
 
       pm.style.transform = 'rotate(0deg)'
-      nextBlock = document.querySelector(
-        `.block[data-x="${Number(pm.dataset.x) + 1}"][data-y="${pm.dataset.y}"]`
-      )
       break
   }
 
-  if (nextBlock && !nextBlock.classList.contains('border')) {
-    if (nextBlock.classList.contains('point')) {
-      nextBlock.classList.remove('point')
-      pacmanObj.x = Number(nextBlock.dataset.x)
-      pacmanObj.y = Number(nextBlock.dataset.y)
-      console.log(pacmanObj)
-      points++
-      pointsEl.textContent = points
-    } else {
-      pacmanObj.x = Number(nextBlock.dataset.x)
-      pacmanObj.y = Number(nextBlock.dataset.y)
-      nextBlock.classList.add('pacman')
-      nextBlock.style.transform = pm.style.transform
-    }
-    pm.classList.remove('pacman')
-  }
 })
 
-setInterval(() => {
+// pacman mover interval
+pacmanMover = setInterval(() => {
   let nextBlock
   if (!pacmanObj.hasMoved) return
 
@@ -252,6 +234,8 @@ setInterval(() => {
   console.log(nextBlock)
 
   if (nextBlock && !nextBlock.classList.contains('border')) {
+    nextBlock.classList.add('pacman')
+    pm.classList.remove('pacman')
     if (nextBlock.classList.contains('point')) {
       nextBlock.classList.remove('point')
       pacmanObj.x = Number(nextBlock.dataset.x)
@@ -262,7 +246,34 @@ setInterval(() => {
       pacmanObj.x = Number(nextBlock.dataset.x)
       pacmanObj.y = Number(nextBlock.dataset.y)
     }
-    nextBlock.classList.add('pacman')
-    pm.classList.remove('pacman')
+  }
+
+  // check if you win
+  if (points === pointsTotal) {
+    mainGrid.innerHTML = ''
+    mainGrid.classList.remove('main-grid')
+    mainGrid.classList.add('play-again-grid')
+    const youWonText = document.createElement('h3')
+    youWonText.classList.add('winner-text')
+    const playAgainButton = document.createElement('button')
+    playAgainButton.textContent = 'Play Again'
+    playAgainButton.addEventListener('click', () => {
+      points = 0
+      pointsEl.textContent = 0
+
+      pacmanObj.hasMoved = false
+      pacmanObj.direction = 'left'
+      pacmanObj.x = 37
+      pacmanObj.y = 12
+      pacmanObj.canMove = false
+      mainGrid.innerHTML = ""
+      gridCreator()
+      mainGrid.classList.remove('play-again-grid')
+      mainGrid.classList.add('main-grid')
+    })
+    mainGrid.appendChild(youWonText)
+    mainGrid.appendChild(playAgainButton)
   }
 }, 250)
+
+

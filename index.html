@@ -6,7 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Pacman</title>
     <link rel="stylesheet" href="style.css">
-    <script src="./script.js" defer></script>
+    <script src="./refactoredScript.js" defer></script>
     <link rel="icon" href="./assets/pacman.svg" />
 
 </head>
@@ -14,16 +14,22 @@
 <body>
 
     <h2 class="game-title">PACVIDER</h2>
+    <div id="point-life-container">
+        <p>⭐ Points: <span id="points"></span> </p>
+        <p>❤️ Lives: <span id="lives"></span>/3 </p>
+    </div>
 
-    <p>⭐ Points: <span id="points"></span> </p>
-    <p>❤️ Lives: <span id="lives"></span>/3 </p>
+    <dialog class="modal">
+        <h3>Are you sure you want to create a new game?</h3>
+        <div>
+            <button id="modal-yes">yes</button>
+            <button id="modal-no">no</button>
+        </div>
+
+    </dialog>
 
     <main>
-
-        <div class="main-grid">
-
-
-        </div>
+        <div class="main-grid"></div>
     </main>
 
 

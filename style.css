@@ -17,7 +17,34 @@ main {
     margin-right: 2rem;
 }
 
-p{
+dialog {
+    width: 50%;
+    border-radius: 1rem;
+    padding: 2rem;
+
+    & h3 {
+        text-align: center;
+    }
+
+    & div {
+        display: flex;
+        justify-content: center;
+        gap: 1rem;
+
+        >button {
+            padding: 1rem 2rem;
+            border-radius: 0.75rem;
+            border: none;
+            font-weight: 700;
+        }
+        >button:hover {
+            filter: brightness(75%);
+            cursor: pointer;
+        }
+    }
+}
+
+p {
     text-align: center;
 }
 
@@ -25,8 +52,10 @@ p{
     color: #fef08a;
     font-size: 2.75rem;
     font-weight: 400;
+    margin-bottom: 0.25rem;
     text-align: center;
-    & svg{
+
+    & svg {
         width: 36px;
         height: 36px;
         fill: yellow !important;
@@ -44,12 +73,29 @@ p{
     border-radius: 1rem;
     overflow: hidden;
 }
-.play-again-grid{
+
+.main-grid-win-lose {
     display: flex;
     flex-direction: column;
     justify-content: center;
     align-items: center;
+
+    >button {
+        padding: 1rem 2rem;
+        background: #d3d3d3;
+        border: none;
+        border-radius: 0.5rem;
+        color: #1f1f1f;
+        font-weight: 700;
+        font-size: 1rem;
+    }
+
+    >button:hover {
+        background: #aaaaaa;
+        cursor: pointer;
+    }
 }
+
 
 .square {
     height: 20px;
@@ -64,56 +110,72 @@ p{
     background-color: #06b6d4;
 }
 
-.point{
+.point {
     opacity: .8;
-    background-image:  url('./assets/cirlclePoint.svg');
-    background-position:  center;
+    background-image: url('./assets/cirlclePoint.svg');
+    background-position: center;
     background-repeat: no-repeat;
 }
 
-.pacman{
-    /* transform: rotate(180deg); */
-    background-image:  url('./assets/pacman.svg');
-    background-position:  center;
+.pacman {
+    background-image: url('./assets/pacman.svg');
+    background-position: center;
     background-repeat: no-repeat;
 }
 
-.winner-text{
-    text-align: center;
-    font-size: 3rem;
-    color: rgb(114, 255, 114);
-
-    /* kjo duhet per humbesin */
-    /* text-decoration: underline; */
-    /* text-decoration-style: wavy;  */
+#won {
+    font-size: 4rem;
+    color: lightgreen;
+    margin-bottom: 1rem;
 }
 
-#won-play-again{
-    padding: 1rem 2rem;
-    background-color: transparent;
+#lost {
+    font-size: 4rem;
+    color: lightcoral;
+    text-decoration: underline;
+    text-decoration-style: wavy;
+    text-underline-offset: 0.8rem;
+    margin-bottom: 2rem;
+}
+
+#modal-yes{
+    background-color: lightgreen;
     font-size: 1rem;
-    border-radius: 10px;
-
+    color: #1f1f1f;
+}
+#modal-no{
+    background-color:   lightcoral;
+    
+    font-size: 1rem;
+    color: #1f1f1f;
 }
 
-.opp{
-    background-position:  center;
+
+#point-life-container {
+    display: flex;
+    justify-content: center;
+    gap: 1.6rem;
+    margin-bottom: 4rem;
+}
+
+
+.opp {
+    background-position: center;
     background-repeat: no-repeat;
 }
-#albi{
-    background-image:  url('./assets/opp1.svg');
-}
-#marvin{
-    background-image:  url('./assets/opp2.svg');
-}
-#daisy{
-    background-image:  url('./assets/opp3.svg');
-}
-#georgia{
-    background-image:  url('./assets/opp4.svg');
+
+#opp1 {
+    background-image: url('./assets/opp1.svg');
 }
 
+#opp2 {
+    background-image: url('./assets/opp2.svg');
+}
 
-.loser-text{
-    
+#opp3 {
+    background-image: url('./assets/opp3.svg');
+}
+
+#opp4 {
+    background-image: url('./assets/opp4.svg');
 }

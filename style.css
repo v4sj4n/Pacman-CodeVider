@@ -24,6 +24,7 @@ dialog {
 
     & h3 {
         text-align: center;
+        font-size: 2rem;
     }
 
     & div {
@@ -32,7 +33,7 @@ dialog {
         gap: 1rem;
 
         >button {
-            padding: 1rem 2rem;
+            padding: 0.75rem 4rem;
             border-radius: 0.75rem;
             border: none;
             font-weight: 700;
@@ -159,23 +160,28 @@ p {
 }
 
 
-.opp {
+.ghost {
     background-position: center;
     background-repeat: no-repeat;
+    filter: grayscale(50%);
 }
 
-#opp1 {
+#ghost1 {
     background-image: url('./assets/opp1.svg');
 }
 
-#opp2 {
+#ghost2 {
     background-image: url('./assets/opp2.svg');
 }
 
-#opp3 {
+#ghost3 {
     background-image: url('./assets/opp3.svg');
 }
 
-#opp4 {
+#ghost4 {
     background-image: url('./assets/opp4.svg');
+}
+
+#high-score{
+    
 }

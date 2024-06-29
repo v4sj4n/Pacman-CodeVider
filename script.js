@@ -83,6 +83,21 @@ const areasWhereNotToPutPoints = {
   66: [7, 8, 9, 10],
 }
 
+const areasWithExtraPoints = {
+  24: { 5: 'cherry', 19: 'cherry' },
+  53: { 5: 'lemon', 19: 'lemon' },
+  65: { 17: 'grape' },
+  66: { 14: 'lemon' },
+}
+
+const areasWithGhostEatingAttributes = {
+  3: [2, 22],
+  8: [7, 17],
+  46: [7, 17],
+  56: [7, 17],
+  71: [2, 22],
+}
+
 const moveSpeedMs = 250
 const possibleDirections = ['up', 'right', 'down', 'left']
 
@@ -93,16 +108,14 @@ const pointsEl = document.getElementById('points')
 pointsEl.textContent = 0
 
 const livesEl = document.getElementById('lives')
-
 const highestScoreEl = document.getElementById('high-score')
+const secondsLeft = document.getElementById('seconds-left')
 
 if (!localStorage.getItem('highScore')) {
   localStorage.setItem('highScore', 0)
 }
 
 highestScoreEl.textContent = Number(localStorage.getItem('highScore'))
-
-console.log(typeof localStorage.getItem('highScore'))
 
 // modal is displayed only if you press n
 const modal = document.querySelector('.modal')
@@ -122,17 +135,14 @@ modalNo.addEventListener('click', function () {
 // intervals for movement
 let pacmanInterval
 let ghostsInterval
-
-let totalPoints = 0
+let timerInterval
 
 // Class definitions
 class Pacman {
   constructor() {
     this.direction = 'left'
-    // this.x = 37
-    // this.y = 12
-    this.x = 35
-    this.y = 22
+    this.x = 71
+    this.y = 3
     this.hasStarted = false
     this.isMoving = false
     this.lives = 3
@@ -167,48 +177,35 @@ const ghost1 = new Ghost('Ghost1', 'left', 'red', 36, 22)
 const ghost2 = new Ghost('Ghost2', 'up', 'purple', 37, 22)
 const ghost3 = new Ghost('Ghost3', 'up', 'green', 38, 22)
 const ghost4 = new Ghost('Ghost4', 'right', 'cyan', 39, 22)
+const ghosts = [ghost1, ghost2, ghost3, ghost4]
+
+livesEl.textContent = pacmanObj.lives
 
 // Grid Creator
 function createGrid() {
   for (let i = 0; i < 25; i++) {
     for (let j = 0; j < 75; j++) {
       const child = document.createElement('div')
-      child.classList.add('block')
+      child.classList.add('square')
       child.dataset.x = j
       child.dataset.y = i
 
       if (i == pacmanObj.y && j == pacmanObj.x) {
-        child.classList.add('square', 'pacman')
-        child.style.transform = 'rotate("0deg")'
-        livesEl.textContent = pacmanObj.lives
+        child.classList.add('pacman')
       } else if (i == 22 && j >= 36 && j <= 39) {
         child.classList.add('ghost')
-        switch (j) {
-          case 36:
-            child.setAttribute('id', 'ghost1')
-            ghost1.x = j
-            ghost1.y = i
-            break
-          case 37:
-            child.setAttribute('id', 'ghost2')
-            ghost2.x = j
-            ghost2.y = i
-            break
-          case 38:
-            child.setAttribute('id', 'ghost3')
-            ghost3.x = j
-            ghost3.y = i
-            break
-          case 39:
-            child.setAttribute('id', 'ghost4')
-            ghost4.x = j
-            ghost4.y = i
-            break
-        }
+        assignGhostId(j, i, child)
       }
 
       if (i < 2 || i > 22 || j < 3 || j > 71 || bordersObj[j]?.includes(i)) {
         child.classList.add('square', 'border')
+      } else if (j in areasWithExtraPoints && i in areasWithExtraPoints[j]) {
+        child.classList.add(areasWithExtraPoints[j][i])
+      } else if (
+        j in areasWithGhostEatingAttributes &&
+        areasWithGhostEatingAttributes[j].includes(i)
+      ) {
+        child.classList.add('special-square')
       } else if (i == pacmanObj.y && j == pacmanObj.x) {
         child.classList.add('square')
       } else if (
@@ -216,7 +213,6 @@ function createGrid() {
         !areasWhereNotToPutPoints[j].includes(i)
       ) {
         child.classList.add('square', 'point')
-        totalPoints++
       }
 
       mainGrid.appendChild(child)
@@ -225,7 +221,6 @@ function createGrid() {
 }
 
 createGrid()
-console.log(totalPoints)
 
 // Direction changer
 document.addEventListener('keydown', function (e) {
@@ -286,20 +281,24 @@ function changePacmanDirection(direction) {
 // creating a function for pacman to move through an interval and putting it to the pacman variable (that will be its id)
 function startPacmanMovement() {
   pacmanInterval = setInterval(() => {
-    console.log('I am moving')
-    let nextBlock
     const pm = document.querySelector('.pacman')
 
+    let nextBlock
     nextBlock = findNextBlock(pacmanObj)
 
     if (nextBlock && nextBlock.classList.contains('border')) {
-      pacmanObj.isMoving = false
       stopPacmanMovement()
     } else {
-      if (nextBlock.classList.contains('point')) {
-        nextBlock.classList.remove('point')
-        pacmanObj.points++
-        pointsEl.textContent = pacmanObj.points
+      if (nextBlock.classList.contains('point') || isExtraPoint(nextBlock)) {
+        pointAdder(nextBlock)
+      }
+      if (nextBlock.classList.contains('special-square')) {
+        nextBlock.classList.remove('special-square')
+        stopTimer()
+        startTimer()
+        ghosts.forEach((ghost) => {
+          ghost.isEatable = true
+        })
       }
       if (nextBlock.classList.contains('ghost')) {
         pacmanObj.lives--
@@ -313,13 +312,7 @@ function startPacmanMovement() {
         return
       }
 
-      nextBlock.style.transform = pm.style.transform
-      pacmanObj.x = Number(nextBlock.dataset.x)
-      pacmanObj.y = Number(nextBlock.dataset.y)
-
-      pm.classList.remove('pacman')
-      nextBlock.classList.add('pacman')
-      pm.style.transform = ''
+      pacmanStyleSwapper(pm, nextBlock)
     }
   }, moveSpeedMs)
 }
@@ -327,6 +320,7 @@ function startPacmanMovement() {
 // Clearing the interval
 function stopPacmanMovement() {
   if (pacmanInterval) {
+    pacmanObj.isMoving = false
     clearInterval(pacmanInterval)
   }
 }
@@ -344,19 +338,11 @@ function moveGhost(ghost) {
     !nextBlock.classList.contains('ghost')
   ) {
     if (nextBlock.classList.contains('pacman')) {
-      if (
-        !(pacmanObj.direction == 'left' && ghost.direction == 'right') &&
-        !(pacmanObj.direction == 'right' && ghost.direction == 'left') &&
-        !(pacmanObj.direction == 'up' && ghost.direction == 'down') &&
-        !(pacmanObj.direction == 'down' && ghost.direction == 'up')
-      ) {
+      if (checkIsNotCollision(ghost, pacmanObj)) {
         handleCollision()
       }
     }
-    g.removeAttribute('id')
-    g.classList.remove('ghost')
-    nextBlock.setAttribute('id', ghost.name.toLowerCase())
-    nextBlock.classList.add('ghost')
+    ghostStyleSwapper(g, nextBlock, ghost)
   }
 }
 
@@ -419,6 +405,7 @@ function playAgain() {
   mainGrid.classList.add('main-grid')
   pacmanObj.resetAll()
   pointsEl.textContent = pacmanObj.points
+  livesEl.textContent = pacmanObj.lives
   createGrid()
 }
 
@@ -427,13 +414,13 @@ function findNextBlock(object) {
   let el
   if (['up', 'down'].includes(object.direction)) {
     el = document.querySelector(
-      `.block[data-x="${object.x}"][data-y="${
+      `.square[data-x="${object.x}"][data-y="${
         object.direction == 'up' ? object.y - 1 : object.y + 1
       }"]`
     )
   } else {
     el = document.querySelector(
-      `.block[data-x="${
+      `.square[data-x="${
         object.direction == 'left' ? object.x - 1 : object.x + 1
       }"][data-y="${object.y}"]`
     )
@@ -462,13 +449,12 @@ function resetPacmanPosition() {
   pacmanObj.isMoving = false
 
   const basePosition = document.querySelector(
-    `.block[data-x="${pacmanObj.x}"][data-y="${pacmanObj.y}"]`
+    `.square[data-x="${pacmanObj.x}"][data-y="${pacmanObj.y}"]`
   )
   basePosition.classList.add('pacman')
 }
 
 document.addEventListener('keydown', function (e) {
-  console.log(e.key)
   if (modal.open) {
     if (e.key === 'Escape') {
       startPacmanMovement()
@@ -476,3 +462,99 @@ document.addEventListener('keydown', function (e) {
     }
   }
 })
+
+function assignGhostId(x, y, child) {
+  switch (x) {
+    case 36:
+      child.setAttribute('id', 'ghost1')
+      ghost1.x = x
+      ghost1.y = y
+      break
+    case 37:
+      child.setAttribute('id', 'ghost2')
+      ghost2.x = x
+      ghost2.y = y
+      break
+    case 38:
+      child.setAttribute('id', 'ghost3')
+      ghost3.x = x
+      ghost3.y = y
+      break
+    case 39:
+      child.setAttribute('id', 'ghost4')
+      ghost4.x = x
+      ghost4.y = y
+      break
+  }
+}
+
+function pacmanStyleSwapper(current, next) {
+  next.style.transform = current.style.transform
+  pacmanObj.x = Number(next.dataset.x)
+  pacmanObj.y = Number(next.dataset.y)
+
+  current.classList.remove('pacman')
+  next.classList.add('pacman')
+  current.style.transform = ''
+}
+
+function ghostStyleSwapper(current, next, ghost) {
+  current.removeAttribute('id')
+  current.classList.remove('ghost')
+  next.setAttribute('id', ghost.name.toLowerCase())
+  next.classList.add('ghost')
+}
+
+function checkIsNotCollision(ghost, pacman) {
+  if (
+    !(pacman.direction == 'left' && ghost.direction == 'right') &&
+    !(pacman.direction == 'right' && ghost.direction == 'left') &&
+    !(pacman.direction == 'up' && ghost.direction == 'down') &&
+    !(pacman.direction == 'down' && ghost.direction == 'up')
+  ) {
+    return true
+  }
+  return false
+}
+
+function isExtraPoint(el) {
+  return (
+    el.classList.contains('cherry') ||
+    el.classList.contains('grape') ||
+    el.classList.contains('lemon')
+  )
+}
+
+function pointAdder(el) {
+  if (isExtraPoint(el)) {
+    el.classList = ''
+    el.classList.add('square')
+    pacmanObj.points += 25
+    pointsEl.textContent = pacmanObj.points
+  } else {
+    el.classList.remove('point')
+    pacmanObj.points++
+    pointsEl.textContent = pacmanObj.points
+  }
+}
+
+function startTimer() {
+  let seconds = 20
+  secondsLeft.textContent = `${seconds} seconds left`
+   timerInterval = setInterval(() => {
+    console.log(seconds)
+    seconds--;
+    if (seconds > 0) {
+      secondsLeft.textContent = `${seconds} second${seconds === 1 ? '' : 's'} left`;
+    } else {
+      stopTimer()
+    }
+  }, 1000);
+}
+
+function stopTimer(){
+  if(timerInterval){
+            clearInterval(timerInterval);
+      secondsLeft.textContent = ''
+  }
+}

@@ -38,6 +38,7 @@ dialog {
             border: none;
             font-weight: 700;
         }
+
         >button:hover {
             filter: brightness(75%);
             cursor: pointer;
@@ -101,6 +102,9 @@ p {
 .square {
     height: 20px;
     width: 20px;
+    outline: #202020 solid 1px;
+    background-position: center;
+    background-repeat: no-repeat;
 }
 
 .field {
@@ -114,14 +118,10 @@ p {
 .point {
     opacity: .8;
     background-image: url('./assets/cirlclePoint.svg');
-    background-position: center;
-    background-repeat: no-repeat;
 }
 
 .pacman {
     background-image: url('./assets/pacman.svg');
-    background-position: center;
-    background-repeat: no-repeat;
 }
 
 #won {
@@ -139,14 +139,15 @@ p {
     margin-bottom: 2rem;
 }
 
-#modal-yes{
+#modal-yes {
     background-color: lightgreen;
     font-size: 1rem;
     color: #1f1f1f;
 }
-#modal-no{
-    background-color:   lightcoral;
-    
+
+#modal-no {
+    background-color: lightcoral;
+
     font-size: 1rem;
     color: #1f1f1f;
 }
@@ -161,27 +162,39 @@ p {
 
 
 .ghost {
-    background-position: center;
-    background-repeat: no-repeat;
     filter: grayscale(50%);
 }
 
 #ghost1 {
-    background-image: url('./assets/opp1.svg');
+    background-image: url('./assets/ghosts/ghost1.svg');
 }
 
 #ghost2 {
-    background-image: url('./assets/opp2.svg');
+    background-image: url('./assets/ghosts/ghost2.svg');
 }
 
 #ghost3 {
-    background-image: url('./assets/opp3.svg');
+    background-image: url('./assets/ghosts/ghost3.svg');
 }
 
 #ghost4 {
-    background-image: url('./assets/opp4.svg');
+    background-image: url('./assets/ghosts/ghost4.svg');
 }
 
-#high-score{
-    
+.cherry {
+    background-image: url('./assets/extraPoints/cherry.svg');
+}
+
+.grape {
+    background-image: url('./assets/extraPoints/grape.svg');
+}
+
+.lemon {
+    background-image: url('./assets/extraPoints/lemon.svg');
+
+}
+
+.special-square {
+    background-image: url('./assets/specialSquare.svg');
+    opacity: .5;
 }

@@ -162,10 +162,11 @@ p {
 
 
 .ghost {
-    filter: grayscale(50%);
+    /* filter: grayscale(50%); */
 }
 
 #ghost1 {
+    color: ligh;
     background-image: url('./assets/ghosts/ghost1.svg');
 }
 

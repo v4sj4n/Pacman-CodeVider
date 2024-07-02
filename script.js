@@ -98,7 +98,7 @@ const areasWithGhostEatingAttributes = {
   71: [2, 22],
 }
 
-const moveSpeedMs = 250
+const moveSpeedMs = 200
 const possibleDirections = ['up', 'right', 'down', 'left']
 
 // Page Elements
@@ -136,13 +136,14 @@ modalNo.addEventListener('click', function () {
 let pacmanInterval
 let ghostsInterval
 let timerInterval
+let secondsToEatGhosts = 20
 
 // Class definitions
 class Pacman {
   constructor() {
     this.direction = 'left'
-    this.x = 71
-    this.y = 3
+    this.x = 37
+    this.y = 12
     this.hasStarted = false
     this.isMoving = false
     this.lives = 3
@@ -161,22 +162,32 @@ class Pacman {
 }
 
 class Ghost {
-  constructor(name, direction, color, x, y) {
+  constructor(name, direction, color, x, y, isSmart) {
     this.name = name
     this.direction = direction
     this.x = x
     this.y = y
+    this.originDirection = direction
+    this.originX = x
+    this.originY = y
     this.isEatable = false
     this.color = color
+    this.smart = isSmart
+  }
+
+  resetPosition() {
+    this.direction = this.originDirection
+    this.x = this.originX
+    this.y = this.originY
   }
 }
 
 // Objects creation
 const pacmanObj = new Pacman()
-const ghost1 = new Ghost('Ghost1', 'left', 'red', 36, 22)
-const ghost2 = new Ghost('Ghost2', 'up', 'purple', 37, 22)
-const ghost3 = new Ghost('Ghost3', 'up', 'green', 38, 22)
-const ghost4 = new Ghost('Ghost4', 'right', 'cyan', 39, 22)
+const ghost1 = new Ghost('Ghost1', 'left', 'red', 36, 22, true)
+const ghost2 = new Ghost('Ghost2', 'up', 'purple', 37, 22, false)
+const ghost3 = new Ghost('Ghost3', 'up', 'green', 38, 22, false)
+const ghost4 = new Ghost('Ghost4', 'right', 'cyan', 39, 22, true)
 const ghosts = [ghost1, ghost2, ghost3, ghost4]
 
 livesEl.textContent = pacmanObj.lives
@@ -282,9 +293,7 @@ function changePacmanDirection(direction) {
 function startPacmanMovement() {
   pacmanInterval = setInterval(() => {
     const pm = document.querySelector('.pacman')
-
-    let nextBlock
-    nextBlock = findNextBlock(pacmanObj)
+    let nextBlock = findNextBlock(pacmanObj)
 
     if (nextBlock && nextBlock.classList.contains('border')) {
       stopPacmanMovement()
@@ -294,22 +303,27 @@ function startPacmanMovement() {
       }
       if (nextBlock.classList.contains('special-square')) {
         nextBlock.classList.remove('special-square')
-        stopTimer()
-        startTimer()
-        ghosts.forEach((ghost) => {
-          ghost.isEatable = true
-        })
+        startGhostEatingTimer()
       }
       if (nextBlock.classList.contains('ghost')) {
-        pacmanObj.lives--
-        livesEl.textContent = pacmanObj.lives
-        if (pacmanObj.lives === 0) {
-          lost()
+        if (ghost1.isEatable) {
+          const currGhost = ghosts.filter(
+            (ghost) =>
+              ghost.x == nextBlock.dataset.x && ghost.y == nextBlock.dataset.y
+          )
+
+          eatGhost(currGhost)
+        } else {
+          pacmanObj.lives--
+          livesEl.textContent = pacmanObj.lives
+          if (pacmanObj.lives === 0) {
+            lost()
+            return
+          }
+          resetPacmanPosition()
+          stopPacmanMovement()
           return
         }
-        resetPacmanPosition()
-        stopPacmanMovement()
-        return
       }
 
       pacmanStyleSwapper(pm, nextBlock)
@@ -326,32 +340,121 @@ function stopPacmanMovement() {
 }
 
 function moveGhost(ghost) {
-  let nextBlock
-  const g = document.getElementById(ghost.name.toLowerCase())
-  ghost.direction =
-    possibleDirections[Math.floor(Math.random() * possibleDirections.length)]
+  const path =
+    ghost.smart === true
+      ? findSmartPath(ghost, pacmanObj)
+      : moveGhostSimple(ghost)
 
-  nextBlock = findNextBlock(ghost)
+  if (path && path.length > 1) {
+    const [nextX, nextY] = path[1]
+    const nextBlock = document.querySelector(
+      `.square[data-x="${nextX}"][data-y="${nextY}"]`
+    )
+
+    if (nextBlock.classList.contains('pacman')) {
+      if (ghost.isEatable) {
+        eatGhost(ghost)
+      } else if (checkIsNotCollision(ghost, pacmanObj)) {
+        handleCollision()
+      }
+    } else {
+      const g = document.getElementById(ghost.name.toLowerCase())
+      ghostAttributeSwapper(g, nextBlock, ghost)
+
+      if (nextX > ghost.x) ghost.direction = 'right'
+      else if (nextX < ghost.x) ghost.direction = 'left'
+      else if (nextY > ghost.y) ghost.direction = 'down'
+      else if (nextY < ghost.y) ghost.direction = 'up'
+    }
+  }
+}
+
+function moveGhostSimple(ghost) {
+  let nextBlock = findNextBlock(ghost)
+  let attempts = 0
+  const maxAttempts = 4
+
+  while (
+    (!nextBlock || nextBlock.classList.contains('border')) &&
+    attempts < maxAttempts
+  ) {
+    ghost.direction = possibleDirections[Math.floor(Math.random() * 4)]
+    nextBlock = findNextBlock(ghost)
+    attempts++
+  }
+
   if (
     nextBlock &&
     !nextBlock.classList.contains('border') &&
     !nextBlock.classList.contains('ghost')
   ) {
     if (nextBlock.classList.contains('pacman')) {
-      if (checkIsNotCollision(ghost, pacmanObj)) {
+      if (ghost.isEatable) {
+        eatGhost(ghost)
+      } else if (checkIsNotCollision(ghost, pacmanObj)) {
         handleCollision()
       }
+    } else {
+      const g = document.getElementById(ghost.name.toLowerCase())
+      ghostAttributeSwapper(g, nextBlock, ghost)
     }
-    ghostStyleSwapper(g, nextBlock, ghost)
+  }
+}
+
+function findSmartPath(ghost, pacman) {
+  const queue = [[ghost.x, ghost.y]]
+  const visited = new Set()
+  const parent = new Map()
+
+  while (queue.length > 0) {
+    const [x, y] = queue.shift()
+    const key = `${x},${y}`
+
+    if (x === pacman.x && y === pacman.y) {
+      const path = []
+      let current = key
+      while (current) {
+        const [cx, cy] = current.split(',').map(Number)
+        path.unshift([cx, cy])
+        current = parent.get(current)
+      }
+      return path
+    }
+
+    if (visited.has(key)) continue
+    visited.add(key)
+
+    const directions = [
+      [0, -1],
+      [1, 0],
+      [0, 1],
+      [-1, 0],
+    ]
+    for (const [dx, dy] of directions) {
+      const newX = x + dx
+      const newY = y + dy
+      const newKey = `${newX},${newY}`
+
+      if (!visited.has(newKey)) {
+        const nextBlock = document.querySelector(
+          `.square[data-x="${newX}"][data-y="${newY}"]`
+        )
+        if (
+          nextBlock &&
+          !nextBlock.classList.contains('border') &&
+          !nextBlock.classList.contains('ghost')
+        ) {
+          queue.push([newX, newY])
+          parent.set(newKey, key)
+        }
+      }
+    }
   }
 }
 
 function startGhostMovement() {
   ghostsInterval = setInterval(() => {
-    moveGhost(ghost1)
-    moveGhost(ghost2)
-    moveGhost(ghost3)
-    moveGhost(ghost4)
+    ghosts.forEach((ghost) => moveGhost(ghost))
   }, moveSpeedMs)
 }
 
@@ -404,6 +507,7 @@ function playAgain() {
   mainGrid.classList = ''
   mainGrid.classList.add('main-grid')
   pacmanObj.resetAll()
+  stopGhostMovement()
   pointsEl.textContent = pacmanObj.points
   livesEl.textContent = pacmanObj.lives
   createGrid()
@@ -411,21 +515,25 @@ function playAgain() {
 
 // helper functions
 function findNextBlock(object) {
-  let el
-  if (['up', 'down'].includes(object.direction)) {
-    el = document.querySelector(
-      `.square[data-x="${object.x}"][data-y="${
-        object.direction == 'up' ? object.y - 1 : object.y + 1
-      }"]`
-    )
-  } else {
-    el = document.querySelector(
-      `.square[data-x="${
-        object.direction == 'left' ? object.x - 1 : object.x + 1
-      }"][data-y="${object.y}"]`
-    )
+  let nextX = object.x
+  let nextY = object.y
+
+  switch (object.direction) {
+    case 'up':
+      nextY--
+      break
+    case 'down':
+      nextY++
+      break
+    case 'left':
+      nextX--
+      break
+    case 'right':
+      nextX++
+      break
   }
-  return el
+
+  return document.querySelector(`.square[data-x="${nextX}"][data-y="${nextY}"]`)
 }
 
 function handleCollision() {
@@ -437,6 +545,13 @@ function handleCollision() {
   }
   resetPacmanPosition()
   stopPacmanMovement()
+
+  // Reset the ghost's position and add the 'ghost' class back to its element
+  const ghost =
+    ghosts[ghosts.findIndex((g) => g.x === pacmanObj.x && g.y === pacmanObj.y)]
+  ghost.resetPosition()
+  const ghostElement = document.getElementById(ghost.name.toLowerCase())
+  ghostElement.classList.add('ghost')
 }
 
 function resetPacmanPosition() {
@@ -498,9 +613,15 @@ function pacmanStyleSwapper(current, next) {
   current.style.transform = ''
 }
 
-function ghostStyleSwapper(current, next, ghost) {
+function ghostAttributeSwapper(current, next, ghost) {
+  if (!current) {
+    return
+  }
   current.removeAttribute('id')
   current.classList.remove('ghost')
+  ghost.x = Number(next.dataset.x)
+  ghost.y = Number(next.dataset.y)
+  // console.log(next.dataset)
   next.setAttribute('id', ghost.name.toLowerCase())
   next.classList.add('ghost')
 }
@@ -531,30 +652,68 @@ function pointAdder(el) {
     el.classList.add('square')
     pacmanObj.points += 25
     pointsEl.textContent = pacmanObj.points
+    isThereAnyPointsLeft()
   } else {
     el.classList.remove('point')
     pacmanObj.points++
     pointsEl.textContent = pacmanObj.points
+    isThereAnyPointsLeft()
   }
 }
 
-function startTimer() {
-  let seconds = 20
-  secondsLeft.textContent = `${seconds} seconds left`
-   timerInterval = setInterval(() => {
-    console.log(seconds)
-    seconds--;
-    if (seconds > 0) {
-      secondsLeft.textContent = `${seconds} second${seconds === 1 ? '' : 's'} left`;
-    } else {
-      stopTimer()
+function startGhostEatingTimer() {
+  stopGhostEatingTimer()
+  ghosts.forEach((ghost) => {
+    ghost.isEatable = true
+  })
+  secondsToEatGhosts = 20
+
+  secondsLeft.textContent = `${secondsToEatGhosts} seconds left`
+
+  timerInterval = setInterval(() => {
+    secondsToEatGhosts--
+    secondsLeft.textContent = `${seconds} seconds left`
+
+    if (seconds <= 0) {
+      stopGhostEatingTimer()
     }
-  }, 1000);
+  }, 1000)
 }
 
-function stopTimer(){
-  if(timerInterval){
-            clearInterval(timerInterval);
-      secondsLeft.textContent = ''
+function stopGhostEatingTimer() {
+  if (timerInterval) {
+    clearInterval(timerInterval)
+    timerInterval = null
   }
+  ghosts.forEach((ghost) => {
+    ghost.isEatable = false
+  })
+}
+
+function eatGhost(ghost) {
+  pacmanObj.points += 200
+  pointsEl.textContent = pacmanObj.points
+  secondsToEatGhosts -= 5
+  if (secondsToEatGhosts < 1) {
+    stopGhostEatingTimer()
+    secondsLeft.textContent = ''
+  } else {
+    secondsLeft.textContent = `${secondsToEatGhosts} seconds left`
+  }
+
+  const currentGhostElement = document.getElementById(ghost.name.toLowerCase())
+  currentGhostElement.classList.remove('ghost')
+  currentGhostElement.removeAttribute('id')
+
+  ghost.resetPosition()
+
+  const newGhostPosition = document.querySelector(
+    `.square[data-x="${ghost.x}"][data-y="${ghost.y}"]`
+  )
+  newGhostPosition.classList.add('ghost')
+  newGhostPosition.setAttribute('id', ghost.name.toLowerCase())
+}
+
+function isThereAnyPointsLeft() {
+  // check points
 }

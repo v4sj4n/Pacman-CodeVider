@@ -102,7 +102,6 @@ p {
 .square {
     height: 20px;
     width: 20px;
-    outline: #202020 solid 1px;
     background-position: center;
     background-repeat: no-repeat;
 }
@@ -166,7 +165,6 @@ p {
 }
 
 #ghost1 {
-    color: ligh;
     background-image: url('./assets/ghosts/ghost1.svg');
 }
 
@@ -198,4 +196,8 @@ p {
 .special-square {
     background-image: url('./assets/specialSquare.svg');
     opacity: .5;
+}
+
+.ghost[eatable="true"] {
+    background-image: url('./assets/ghosts/scaredGhost.svg') !important;
 }

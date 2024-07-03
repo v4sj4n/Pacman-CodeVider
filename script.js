@@ -284,7 +284,7 @@ function stopPacmanMovement() {
 }
 function moveGhost(ghost) {
   const path =
-    ghost.smart === !0
+    ghost.smart === true
       ? findSmartPath(ghost, pacmanObj)
       : moveGhostSimple(ghost)
   if (path && path.length > 1) {
@@ -310,15 +310,13 @@ function moveGhost(ghost) {
 }
 function moveGhostSimple(ghost) {
   let nextBlock = findNextBlock(ghost)
-  let attempts = 0
-  const maxAttempts = 4
   while (
-    (!nextBlock || nextBlock.classList.contains('border')) &&
-    attempts < maxAttempts
+    !nextBlock ||
+    nextBlock.classList.contains('border') ||
+    nextBlock.classList.contains('ghost')
   ) {
     ghost.direction = possibleDirections[Math.floor(Math.random() * 4)]
     nextBlock = findNextBlock(ghost)
-    attempts++
   }
   if (
     nextBlock &&
@@ -326,9 +324,7 @@ function moveGhostSimple(ghost) {
     !nextBlock.classList.contains('ghost')
   ) {
     if (nextBlock.classList.contains('pacman')) {
-      if (ghost.isEatable) {
-        eatGhost(ghost)
-      } else if (checkIsNotCollision(ghost, pacmanObj)) {
+      if (!ghost.isEatable) {
         handleCollision()
       }
     } else {
@@ -385,7 +381,7 @@ function findSmartPath(ghost, pacman) {
 function startGhostMovement() {
   ghostsInterval = setInterval(() => {
     ghosts.forEach((ghost) => moveGhost(ghost))
-  }, moveSpeedMs)
+  }, moveSpeedMs * 1.25)
 }
 function stopGhostMovement() {
   if (ghostsInterval) {
@@ -459,12 +455,20 @@ function handleCollision() {
   }
   resetPacmanPosition()
   stopPacmanMovement()
-  const ghost =
-    ghosts[ghosts.findIndex((g) => g.x === pacmanObj.x && g.y === pacmanObj.y)]
-  ghost.resetPosition()
-  const ghostElement = document.getElementById(ghost.name.toLowerCase())
-  ghostElement.classList.add('ghost')
+
+  const ghostIndex = ghosts.findIndex(
+    (g) => g.x === pacmanObj.x && g.y === pacmanObj.y
+  )
+  if (ghostIndex !== -1) {
+    const ghost = ghosts[ghostIndex]
+    ghost.resetPosition()
+    const ghostElement = document.getElementById(ghost.name.toLowerCase())
+    if (ghostElement) {
+      ghostElement.classList.add('ghost')
+    }
+  }
 }
+
 function resetPacmanPosition() {
   const currentPacman = document.querySelector('.pacman')
   currentPacman.classList.remove('pacman')
@@ -587,7 +591,10 @@ function stopGhostEatingTimer() {
     timerInterval = null
   }
   ghosts.forEach((ghost) => {
-    ghost.isEatable = !1
+    ghost.isEatable = false
+    document
+      .querySelectorAll('.ghost')
+      .forEach((g) => g.removeAttribute('eatable'))
   })
 }
 function eatGhost(ghost) {

@@ -71,11 +71,11 @@ const areasWithExtraPoints = {
   66: { 14: 'lemon' },
 }
 const areasWithGhostEatingAttributes = {
-  3: [2, 22],
+  3: [3, 21],
   8: [7, 17],
   46: [7, 17],
   56: [7, 17],
-  71: [2, 22],
+  71: [3, 21],
 }
 const moveSpeedMs = 200
 const possibleDirections = ['up', 'right', 'down', 'left']
@@ -140,11 +140,13 @@ class Ghost {
   }
 }
 const pacmanObj = new Pacman()
-const ghost1 = new Ghost('Ghost1', 'left', 'red', 36, 22, !0)
-const ghost2 = new Ghost('Ghost2', 'up', 'purple', 37, 22, !1)
-const ghost3 = new Ghost('Ghost3', 'up', 'green', 38, 22, !1)
-const ghost4 = new Ghost('Ghost4', 'right', 'cyan', 39, 22, !0)
-const ghosts = [ghost1, ghost2, ghost3, ghost4]
+
+const ghosts = [
+  new Ghost('Ghost1', 'left', 'red', 36, 21, true),
+  new Ghost('Ghost2', 'up', 'purple', 37, 21, false),
+  new Ghost('Ghost3', 'up', 'green', 38, 21, true),
+  new Ghost('Ghost4', 'right', 'cyan', 39, 21, false),
+]
 livesEl.textContent = pacmanObj.lives
 function createGrid() {
   for (let i = 0; i < 25; i++) {
@@ -155,11 +157,11 @@ function createGrid() {
       child.dataset.y = i
       if (i == pacmanObj.y && j == pacmanObj.x) {
         child.classList.add('pacman')
-      } else if (i == 22 && j >= 36 && j <= 39) {
+      } else if (i == 21 && j >= 36 && j <= 39) {
         child.classList.add('ghost')
         assignGhostId(j, i, child)
       }
-      if (i < 2 || i > 22 || j < 3 || j > 71 || bordersObj[j]?.includes(i)) {
+      if (i < 3 || i > 21 || j < 3 || j > 71 || bordersObj[j]?.includes(i)) {
         child.classList.add('square', 'border')
       } else if (j in areasWithExtraPoints && i in areasWithExtraPoints[j]) {
         child.classList.add(areasWithExtraPoints[j][i])
@@ -250,7 +252,7 @@ function startPacmanMovement() {
       }
       if (nextBlock.classList.contains('ghost')) {
         let currGhost
-        if (ghost1.isEatable) {
+        if (ghosts[0].isEatable) {
           currGhost = ghosts.find(
             (ghost) =>
               ghost.x == nextBlock.dataset.x && ghost.y == nextBlock.dataset.y
@@ -334,15 +336,16 @@ function moveGhostSimple(ghost) {
   }
 }
 
-
 function findSmartPath(ghost, pacman) {
   return findPath(ghost, (x, y) => x === pacman.x && y === pacman.y)
 }
 
 function findEscapePath(ghost, pacman) {
-  return findPath(ghost, (x, y) => Math.abs(x - pacman.x) >= 10 || Math.abs(y - pacman.y) >= 10)
+  return findPath(
+    ghost,
+    (x, y) => Math.abs(x - pacman.x) >= 10 || Math.abs(y - pacman.y) >= 10
+  )
 }
-
 
 function findPath(start, endCondition) {
   const queue = [[start.x, start.y]]
@@ -397,11 +400,6 @@ function findPath(start, endCondition) {
 
   return null // No path found
 }
-
-
-
-
-
 
 function startGhostMovement() {
   ghostsInterval = setInterval(() => {
@@ -518,23 +516,23 @@ function assignGhostId(x, y, child) {
   switch (x) {
     case 36:
       child.setAttribute('id', 'ghost1')
-      ghost1.x = x
-      ghost1.y = y
+      ghosts[0].x = x
+      ghosts[0].y = y
       break
     case 37:
       child.setAttribute('id', 'ghost2')
-      ghost2.x = x
-      ghost2.y = y
+      ghosts[1].x = x
+      ghosts[1].y = y
       break
     case 38:
       child.setAttribute('id', 'ghost3')
-      ghost3.x = x
-      ghost3.y = y
+      ghosts[2].x = x
+      ghosts[2].y = y
       break
     case 39:
       child.setAttribute('id', 'ghost4')
-      ghost4.x = x
-      ghost4.y = y
+      ghosts[3].x = x
+      ghosts[3].y = y
       break
   }
 }

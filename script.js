@@ -90,17 +90,12 @@ if (!localStorage.getItem('highScore')) {
 }
 highestScoreEl.textContent = Number(localStorage.getItem('highScore'))
 const modal = document.querySelector('.modal')
+
 const modalYes = document.getElementById('modal-yes')
 const modalNo = document.getElementById('modal-no')
-modalYes.addEventListener('click', function () {
-  playAgain()
-  modal.close()
-})
-modalNo.addEventListener('click', function () {
-  modal.close()
-  startPacmanMovement()
-  startGhostMovement()
-})
+modalYes.addEventListener('click', modalYesFunction)
+modalNo.addEventListener('click', modalNoFunction)
+
 let pacmanInterval
 let ghostsInterval
 let timerInterval
@@ -131,17 +126,17 @@ class Ghost {
     this.direction = direction
     this.x = x
     this.y = y
-    this.originDirection = direction
-    this.originX = x
-    this.originY = y
+    this.originalDirection = direction
+    this.originalX = x
+    this.originalY = y
     this.isEatable = !1
     this.color = color
     this.smart = isSmart
   }
   resetPosition() {
-    this.direction = this.originDirection
-    this.x = this.originX
-    this.y = this.originY
+    this.direction = this.originalDirection
+    this.x = this.originalX
+    this.y = this.originalY
   }
 }
 const pacmanObj = new Pacman()
@@ -207,7 +202,7 @@ document.addEventListener('keydown', function (e) {
   if (e.key.toLowerCase() == 'n') {
     modal.showModal()
     stopPacmanMovement()
-    stopGhostMovement()
+    stopGhostsMovement()
   }
 })
 function changePacmanDirection(direction) {
@@ -254,11 +249,13 @@ function startPacmanMovement() {
         startGhostEatingTimer()
       }
       if (nextBlock.classList.contains('ghost')) {
+        let currGhost
         if (ghost1.isEatable) {
-          const currGhost = ghosts.filter(
+          currGhost = ghosts.find(
             (ghost) =>
               ghost.x == nextBlock.dataset.x && ghost.y == nextBlock.dataset.y
           )
+          console.log(currGhost)
           eatGhost(currGhost)
         } else {
           pacmanObj.lives--
@@ -293,9 +290,7 @@ function moveGhost(ghost) {
       `.square[data-x="${nextX}"][data-y="${nextY}"]`
     )
     if (nextBlock.classList.contains('pacman')) {
-      if (ghost.isEatable) {
-        eatGhost(ghost)
-      } else if (checkIsNotCollision(ghost, pacmanObj)) {
+      if (!ghost.isEatable) {
         handleCollision()
       }
     } else {
@@ -383,7 +378,7 @@ function startGhostMovement() {
     ghosts.forEach((ghost) => moveGhost(ghost))
   }, moveSpeedMs * 1.25)
 }
-function stopGhostMovement() {
+function stopGhostsMovement() {
   if (ghostsInterval) {
     clearInterval(ghostsInterval)
   }
@@ -403,7 +398,7 @@ function won() {
 }
 function lost() {
   stopPacmanMovement()
-  stopGhostMovement()
+  stopGhostsMovement()
   if (Number(localStorage.getItem('highScore') < pacmanObj.points)) {
     highestScoreEl.textContent = pacmanObj.points
     localStorage.setItem('highScore', pacmanObj.points)
@@ -422,7 +417,7 @@ function playAgain() {
   mainGrid.classList = ''
   mainGrid.classList.add('main-grid')
   pacmanObj.resetAll()
-  stopGhostMovement()
+  stopGhostsMovement()
   pointsEl.textContent = pacmanObj.points
   livesEl.textContent = pacmanObj.lives
   createGrid()
@@ -542,9 +537,9 @@ function checkIsNotCollision(ghost, pacman) {
     !(pacman.direction == 'up' && ghost.direction == 'down') &&
     !(pacman.direction == 'down' && ghost.direction == 'up')
   ) {
-    return !0
+    return true
   }
-  return !1
+  return false
 }
 function isExtraPoint(el) {
   return (
@@ -598,7 +593,7 @@ function stopGhostEatingTimer() {
   })
 }
 function eatGhost(ghost) {
-  pacmanObj.points += 200
+  pacmanObj.points += 100
   pointsEl.textContent = pacmanObj.points
   secondsToEatGhosts -= 5
   if (secondsToEatGhosts < 1) {
@@ -617,6 +612,7 @@ function eatGhost(ghost) {
   newGhostPosition.classList.add('ghost')
   newGhostPosition.setAttribute('id', ghost.name.toLowerCase())
 }
+
 function isThereAnyPointsLeft() {
   const pointsOnField =
     document.querySelectorAll('.point').length +
@@ -626,4 +622,15 @@ function isThereAnyPointsLeft() {
   if (pointsOnField === 0) {
     won()
   }
+}
+
+function modalYesFunction() {
+  playAgain()
+  modal.close()
+}
+
+function modalNoFunction() {
+  modal.close()
+  startPacmanMovement()
+  startGhostMovement()
 }

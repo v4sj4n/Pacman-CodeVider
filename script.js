@@ -105,8 +105,8 @@ class Pacman {
     this.direction = 'left'
     this.x = 37
     this.y = 12
-    this.hasStarted = !1
-    this.isMoving = !1
+    this.hasStarted = false
+    this.isMoving = false
     this.lives = 3
     this.points = 0
   }
@@ -114,8 +114,8 @@ class Pacman {
     this.direction = 'left'
     this.x = 37
     this.y = 12
-    this.hasStarted = !1
-    this.isMoving = !1
+    this.hasStarted = false
+    this.isMoving = false
     this.lives = 3
     this.points = 0
   }
@@ -129,7 +129,7 @@ class Ghost {
     this.originalDirection = direction
     this.originalX = x
     this.originalY = y
-    this.isEatable = !1
+    this.isEatable = false
     this.color = color
     this.smart = isSmart
   }
@@ -186,10 +186,10 @@ createGrid()
 document.addEventListener('keydown', function (e) {
   if (['ArrowUp', 'ArrowRight', 'ArrowDown', 'ArrowLeft'].includes(e.key)) {
     if (!pacmanObj.hasStarted) {
-      pacmanObj.isMoving = !0
-      pacmanObj.hasStarted = !0
+      pacmanObj.isMoving = true
+      pacmanObj.hasStarted = true
       startPacmanMovement()
-      startGhostMovement()
+      startGhostsMovement()
     }
     e.key == 'ArrowUp'
       ? changePacmanDirection('up')
@@ -214,7 +214,7 @@ function changePacmanDirection(direction) {
   }
   pacmanObj.direction = direction
   if (!pacmanObj.isMoving) {
-    pacmanObj.isMoving = !0
+    pacmanObj.isMoving = true
     startPacmanMovement()
   }
   switch (direction) {
@@ -276,132 +276,106 @@ function startPacmanMovement() {
 }
 function stopPacmanMovement() {
   if (pacmanInterval) {
-    pacmanObj.isMoving = !1
+    pacmanObj.isMoving = false
     clearInterval(pacmanInterval)
   }
 }
 function moveGhost(ghost) {
-  let path
-  if (ghost.isEatable) {
-    path = findEscapePath(ghost, pacmanObj)
-  } else {
-    path =
-      ghost.smart === true
-        ? findSmartPath(ghost, pacmanObj)
-        : moveGhostSimple(ghost)
-  }
+  const nextBlock = determineGhostMove(ghost)
 
-  if (path && path.length > 1) {
-    const [nextX, nextY] = path[1]
-    const nextBlock = document.querySelector(
-      `.square[data-x="${nextX}"][data-y="${nextY}"]`
-    )
-    if (nextBlock.classList.contains('pacman')) {
-      if (!ghost.isEatable) {
-        handleCollision()
-      }
-    } else {
-      const g = document.getElementById(ghost.name.toLowerCase())
-      ghostAttributeSwapper(g, nextBlock, ghost)
-      if (nextX > ghost.x) ghost.direction = 'right'
-      else if (nextX < ghost.x) ghost.direction = 'left'
-      else if (nextY > ghost.y) ghost.direction = 'down'
-      else if (nextY < ghost.y) ghost.direction = 'up'
+  if (nextBlock.classList.contains('pacman')) {
+    if (!ghost.isEatable) {
+      handleCollision()
     }
+  } else {
+    const g = document.getElementById(ghost.name.toLowerCase())
+    ghostAttributeSwapper(g, nextBlock, ghost)
   }
 }
-function moveGhostSimple(ghost) {
+function determineGhostMove(ghost) {
+  if (ghost.smart) {
+    ghost.direction = smartChase(ghost, pacmanObj)
+  }
+
   let nextBlock = findNextBlock(ghost)
-  while (
+
+  if (
     !nextBlock ||
     nextBlock.classList.contains('border') ||
     nextBlock.classList.contains('ghost')
   ) {
-    ghost.direction = possibleDirections[Math.floor(Math.random() * 4)]
-    nextBlock = findNextBlock(ghost)
-  }
-  if (
-    nextBlock &&
-    !nextBlock.classList.contains('border') &&
-    !nextBlock.classList.contains('ghost')
-  ) {
-    if (nextBlock.classList.contains('pacman')) {
-      if (!ghost.isEatable) {
-        handleCollision()
-      }
+    const availableDirections = possibleDirections.filter((direction) => {
+      const testBlock = findNextBlock({ ...ghost, direction })
+      return (
+        testBlock &&
+        !testBlock.classList.contains('border') &&
+        !testBlock.classList.contains('ghost')
+      )
+    })
+
+    if (availableDirections.length > 0) {
+      ghost.direction =
+        availableDirections[
+          Math.floor(Math.random() * availableDirections.length)
+        ]
+      nextBlock = findNextBlock(ghost)
     } else {
-      const g = document.getElementById(ghost.name.toLowerCase())
-      ghostAttributeSwapper(g, nextBlock, ghost)
-    }
-  }
-}
-
-function findSmartPath(ghost, pacman) {
-  return findPath(ghost, (x, y) => x === pacman.x && y === pacman.y)
-}
-
-function findEscapePath(ghost, pacman) {
-  return findPath(
-    ghost,
-    (x, y) => Math.abs(x - pacman.x) >= 10 || Math.abs(y - pacman.y) >= 10
-  )
-}
-
-function findPath(start, endCondition) {
-  const queue = [[start.x, start.y]]
-  const visited = new Set()
-  const parent = new Map()
-
-  while (queue.length > 0) {
-    const [x, y] = queue.shift()
-    const key = `${x},${y}`
-
-    if (endCondition(x, y)) {
-      const path = []
-      let current = key
-      while (current) {
-        const [cx, cy] = current.split(',').map(Number)
-        path.unshift([cx, cy])
-        current = parent.get(current)
-      }
-      return path
-    }
-
-    if (visited.has(key)) continue
-    visited.add(key)
-
-    const directions = [
-      [0, -1],
-      [1, 0],
-      [0, 1],
-      [-1, 0],
-    ]
-
-    for (const [dx, dy] of directions) {
-      const newX = x + dx
-      const newY = y + dy
-      const newKey = `${newX},${newY}`
-
-      if (!visited.has(newKey)) {
-        const nextBlock = document.querySelector(
-          `.square[data-x="${newX}"][data-y="${newY}"]`
-        )
-        if (
-          nextBlock &&
-          !nextBlock.classList.contains('border') &&
-          !nextBlock.classList.contains('ghost')
-        ) {
-          queue.push([newX, newY])
-          parent.set(newKey, key)
-        }
-      }
+      nextBlock = document.querySelector(
+        `.square[data-x="${ghost.x}"][data-y="${ghost.y}"]`
+      )
     }
   }
 
-  return null // No path found
+  return nextBlock
 }
 
-function startGhostMovement() {
+function smartChase(ghost, pacman) {
+  let bestDirection = ghost.direction
+  let optimalDistance = ghost.isEatable ? -Infinity : Infinity
+
+  possibleDirections.forEach((direction) => {
+    let nextX = ghost.x
+    let nextY = ghost.y
+
+    switch (direction) {
+      case 'up':
+        nextY--
+        break
+      case 'down':
+        nextY++
+        break
+      case 'left':
+        nextX--
+        break
+      case 'right':
+        nextX++
+        break
+    }
+
+    const nextBlock = document.querySelector(
+      `.square[data-x="${nextX}"][data-y="${nextY}"]`
+    )
+    if (
+      nextBlock &&
+      !nextBlock.classList.contains('border') &&
+      !nextBlock.classList.contains('ghost')
+    ) {
+      const distance = Math.abs(pacman.x - nextX) + Math.abs(pacman.y - nextY)
+      if (
+        ghost.isEatable
+          ? distance > optimalDistance
+          : distance < optimalDistance
+      ) {
+        optimalDistance = distance
+        bestDirection = direction
+      }
+    }
+  })
+
+  return bestDirection
+}
+
+function startGhostsMovement() {
   ghostsInterval = setInterval(() => {
     ghosts.forEach((ghost) => moveGhost(ghost))
   }, moveSpeedMs * 1.25)
@@ -409,6 +383,7 @@ function startGhostMovement() {
 function stopGhostsMovement() {
   if (ghostsInterval) {
     clearInterval(ghostsInterval)
+    ghostsInterval = null
   }
 }
 const playAgainButton = document.createElement('button')
@@ -478,18 +453,6 @@ function handleCollision() {
   }
   resetPacmanPosition()
   stopPacmanMovement()
-
-  const ghostIndex = ghosts.findIndex(
-    (g) => g.x === pacmanObj.x && g.y === pacmanObj.y
-  )
-  if (ghostIndex !== -1) {
-    const ghost = ghosts[ghostIndex]
-    ghost.resetPosition()
-    const ghostElement = document.getElementById(ghost.name.toLowerCase())
-    if (ghostElement) {
-      ghostElement.classList.add('ghost')
-    }
-  }
 }
 
 function resetPacmanPosition() {
@@ -498,7 +461,7 @@ function resetPacmanPosition() {
   currentPacman.style = ''
   pacmanObj.x = 37
   pacmanObj.y = 12
-  pacmanObj.isMoving = !1
+  pacmanObj.isMoving = false
   const basePosition = document.querySelector(
     `.square[data-x="${pacmanObj.x}"][data-y="${pacmanObj.y}"]`
   )
@@ -508,7 +471,7 @@ document.addEventListener('keydown', function (e) {
   if (modal.open) {
     if (e.key === 'Escape') {
       startPacmanMovement()
-      startGhostMovement()
+      startGhostsMovement()
     }
   }
 })
@@ -547,6 +510,9 @@ function pacmanStyleSwapper(current, next) {
 function ghostAttributeSwapper(current, next, ghost) {
   if (!current) {
     return
+  }
+  if (current.getAttribute('eatable') == 'true') {
+    current.removeAttribute('eatable')
   }
   current.removeAttribute('id')
   current.classList.remove('ghost')
@@ -595,7 +561,7 @@ function startGhostEatingTimer() {
   ghostValues.forEach((g) => g.setAttribute('eatable', 'true'))
   ghostValues.forEach((g) => g.getAttribute('eatable'))
   ghosts.forEach((ghost) => {
-    ghost.isEatable = !0
+    ghost.isEatable = true
   })
   secondsToEatGhosts = 20
   secondsLeft.textContent = `${secondsToEatGhosts} seconds left`
@@ -648,6 +614,8 @@ function isThereAnyPointsLeft() {
     document.querySelectorAll('.lemon').length +
     document.querySelectorAll('.grape').length
   if (pointsOnField === 0) {
+    stopGhostsMovement()
+    stopPacmanMovement()
     won()
   }
 }
@@ -660,5 +628,9 @@ function modalYesFunction() {
 function modalNoFunction() {
   modal.close()
   startPacmanMovement()
-  startGhostMovement()
+  startGhostsMovement()
+}
+
+function startGhostsMovementAfterThreeSeconds() {
+  setTimeout(startGhostsMovement, 3000)
 }

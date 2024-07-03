@@ -255,7 +255,6 @@ function startPacmanMovement() {
             (ghost) =>
               ghost.x == nextBlock.dataset.x && ghost.y == nextBlock.dataset.y
           )
-          console.log(currGhost)
           eatGhost(currGhost)
         } else {
           pacmanObj.lives--
@@ -280,10 +279,16 @@ function stopPacmanMovement() {
   }
 }
 function moveGhost(ghost) {
-  const path =
-    ghost.smart === true
-      ? findSmartPath(ghost, pacmanObj)
-      : moveGhostSimple(ghost)
+  let path
+  if (ghost.isEatable) {
+    path = findEscapePath(ghost, pacmanObj)
+  } else {
+    path =
+      ghost.smart === true
+        ? findSmartPath(ghost, pacmanObj)
+        : moveGhostSimple(ghost)
+  }
+
   if (path && path.length > 1) {
     const [nextX, nextY] = path[1]
     const nextBlock = document.querySelector(
@@ -328,14 +333,27 @@ function moveGhostSimple(ghost) {
     }
   }
 }
+
+
 function findSmartPath(ghost, pacman) {
-  const queue = [[ghost.x, ghost.y]]
+  return findPath(ghost, (x, y) => x === pacman.x && y === pacman.y)
+}
+
+function findEscapePath(ghost, pacman) {
+  return findPath(ghost, (x, y) => Math.abs(x - pacman.x) >= 10 || Math.abs(y - pacman.y) >= 10)
+}
+
+
+function findPath(start, endCondition) {
+  const queue = [[start.x, start.y]]
   const visited = new Set()
   const parent = new Map()
+
   while (queue.length > 0) {
     const [x, y] = queue.shift()
     const key = `${x},${y}`
-    if (x === pacman.x && y === pacman.y) {
+
+    if (endCondition(x, y)) {
       const path = []
       let current = key
       while (current) {
@@ -345,18 +363,22 @@ function findSmartPath(ghost, pacman) {
       }
       return path
     }
+
     if (visited.has(key)) continue
     visited.add(key)
+
     const directions = [
       [0, -1],
       [1, 0],
       [0, 1],
       [-1, 0],
     ]
+
     for (const [dx, dy] of directions) {
       const newX = x + dx
       const newY = y + dy
       const newKey = `${newX},${newY}`
+
       if (!visited.has(newKey)) {
         const nextBlock = document.querySelector(
           `.square[data-x="${newX}"][data-y="${newY}"]`
@@ -372,7 +394,15 @@ function findSmartPath(ghost, pacman) {
       }
     }
   }
+
+  return null // No path found
 }
+
+
+
+
+
+
 function startGhostMovement() {
   ghostsInterval = setInterval(() => {
     ghosts.forEach((ghost) => moveGhost(ghost))

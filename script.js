@@ -77,8 +77,13 @@ const areasWithGhostEatingAttributes = {
   56: [7, 17],
   71: [3, 21],
 }
+
 const moveSpeedMs = 200
+
+
 const possibleDirections = ['up', 'right', 'down', 'left']
+
+
 const mainGrid = document.querySelector('.main-grid')
 const pointsEl = document.getElementById('points')
 pointsEl.textContent = 0
@@ -278,6 +283,7 @@ function stopPacmanMovement() {
   if (pacmanInterval) {
     pacmanObj.isMoving = false
     clearInterval(pacmanInterval)
+    pacmanInterval = null
   }
 }
 function moveGhost(ghost) {
@@ -631,6 +637,12 @@ function modalNoFunction() {
   startGhostsMovement()
 }
 
-function startGhostsMovementAfterThreeSeconds() {
-  setTimeout(startGhostsMovement, 3000)
-}
+document.addEventListener('visibilitychange', function () {
+  if (document.hidden) {
+    stopPacmanMovement()
+    stopGhostsMovement()
+  } else {
+    startPacmanMovement()
+    startGhostsMovement()
+  }
+})

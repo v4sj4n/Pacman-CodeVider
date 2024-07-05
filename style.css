@@ -47,6 +47,13 @@ dialog {
     }
 }
 
+dialog::backdrop{
+    background: #1f1f1f83;
+    filter: blur(25px);
+
+
+}
+
 p {
     text-align: center;
 }
